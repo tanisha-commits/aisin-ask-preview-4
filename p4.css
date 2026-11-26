@@ -122,6 +122,7 @@ body{margin:0;background:#fff}
   #global-network .gn-panel{max-height:none;border-right:0;border-bottom:1px solid var(--gn-line)}
   #global-network .gn-results{max-height:260px}
   #global-network .gn-map,#global-network .gn-svg{min-height:0}
+  #global-network .gn-map{height:auto}
   #global-network .gn-svg{height:auto;aspect-ratio:1000/394.4}
 }
 @media (max-width:720px){
@@ -177,3 +178,46 @@ body{margin:0;background:#fff}
   .enq-row{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){.enq-fab:before,.enq-panel{animation:none}}
+
+/* ============ Mobile-only adjustments (<=720px): image heights + section rhythm ============
+   Desktop and tablet are untouched. #main raises specificity over the scoped originals. */
+@media (max-width:720px){
+  /* one consistent vertical rhythm between sections */
+  #main .p1 section.brand-proof,#main .p1 section.updates,#main .p2 .contact{padding-top:56px!important;padding-bottom:56px!important}
+  #main .p2 .product-section{margin-top:0!important;padding-top:56px!important;padding-bottom:56px!important}
+  #main #global-network{padding-top:56px;padding-bottom:56px}
+  #main #global-network .gn-head{margin-bottom:28px}
+
+  /* Products: single column, image 220px, readable copy */
+  #main .p2 .product-browser,#main .p2 .product-stage,#main .p2 .product-display{height:auto!important;min-height:0!important;overflow:visible!important}
+  #main .p2 .product-display{grid-template-columns:100%!important;grid-template-rows:auto!important;grid-auto-rows:auto!important;width:100%!important}
+  #main .p2 .product-image{height:220px!important}
+  #main .p2 .product-copy{height:auto!important}
+  #main .p2 .product-image,#main .p2 .product-image img{width:100%!important;max-width:100%!important}
+  #main .p2 .product-image img{height:220px!important;object-fit:cover}
+  #main .p2 .product-copy{display:block!important;width:auto!important;max-width:100%!important;padding:24px 20px 26px!important;box-sizing:border-box}
+  #main .p2 .product-copy>span{display:block;width:auto!important;max-width:none!important}
+  #main .p2 .product-sub-links{width:auto!important;margin-top:20px!important}
+  #main .p2 .launch-strip{margin-top:56px!important}
+
+  /* New products on the way: image 180px */
+  #main .p2 .launch-strip article{padding-top:196px!important;min-height:0!important}
+  #main .p2 .launch-strip article:before{height:180px!important}
+
+  /* News & insights: heading wraps instead of running off-screen; image 200px */
+  #main .p1 #updates .news-heading h2{white-space:normal!important;font-size:40px!important;line-height:1.08!important}
+  #main .p1 .news-card img{height:200px!important;object-fit:cover}
+
+  /* Become a distributor: image 240px, card below it */
+  #main .p2 .business{min-height:0!important;display:block!important;height:auto!important}
+  #main .p2 .business-image{position:relative!important;inset:auto!important;height:240px!important}
+  #main .p2 .business-image img{height:240px!important;width:100%!important;object-fit:cover}
+  #main .p2 .business-copy{position:relative!important;inset:auto!important;transform:none!important;margin:-48px 20px 0!important;width:auto!important;max-width:none!important}
+
+  /* Form: image 200px */
+  #main .p2 .contact-aside{padding-top:236px!important}
+  #main .p2 .contact-aside:before{height:200px!important}
+
+  /* About: image 220px */
+  #main .p1 .about-feature img{height:220px!important;object-fit:cover}
+}
