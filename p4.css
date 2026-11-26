@@ -216,12 +216,12 @@ body{margin:0;background:#fff}
 #main .p1 .news-controls{width:var(--p4-w)!important;margin-left:auto!important;margin-right:auto!important}
 #main #global-network{width:var(--p4-w)!important}
 
-/* --- Alternating washes: grey edges meet grey, white meets white ("crossed"). Filled sections untouched. --- */
-#main .p1 section.brand-proof,#main .p1 section.updates{background:linear-gradient(180deg,#fff 0%,var(--p4-wash) 100%)!important}
-#main .p2 .product-section{background:linear-gradient(180deg,var(--p4-wash) 0%,#fff 100%)!important}
-/* these two sections are container-width: border-image paints the wash out to the viewport edges without overflow */
-#main #global-network{border-image:linear-gradient(180deg,var(--p4-wash) 0%,#fff 100%) fill 0/0/0 100vw}
-#main .p2 .contact{border-image:linear-gradient(180deg,#fff 0%,var(--p4-wash) 100%) fill 0/0/0 100vw!important}
+/* --- Section washes: Preview 1's exact gradient on every non-filled section, repeated in the same direction
+   (clear at the top, #ebebeb at the bottom) for the zig-zag rhythm. Image/filled sections untouched. --- */
+#main .p1 section.brand-proof,#main .p1 section.updates,#main .p2 .product-section{background:linear-gradient(359deg,var(--p4-wash),rgba(0,0,0,0))!important}
+/* container-width sections: border-image paints the same wash out to the viewport edges without overflow */
+#main #global-network{border-image:linear-gradient(359deg,var(--p4-wash),rgba(0,0,0,0)) fill 0/0/0 100vw}
+#main .p2 .contact{border-image:linear-gradient(359deg,var(--p4-wash),rgba(0,0,0,0)) fill 0/0/0 100vw!important}
 
 /* --- Buttons: Preview 1 pill (red, white bold text, arrow) everywhere --- */
 #main .p2 .button,body>.p2 .footer .button,#main .p2 .product-sub-links a,#main .p2 .launch-strip article a,#main .p2 .text-link-light,.enq .enq-submit{
