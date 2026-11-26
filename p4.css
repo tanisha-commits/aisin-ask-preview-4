@@ -259,8 +259,9 @@ body{margin:0;background:#fff}
    "New products on the way" from top-left. border-image paints out to the viewport edges; the far corners fade
    to clear, so the vertical outsets need not be exact. */
 #main .p2 .product-section{background:none!important}
-#main .p2 .product-browser{border-image:radial-gradient(ellipse 75% 85% at 100% 100%,#e3e5ea,rgba(227,229,234,0)) fill 0/0/calc(var(--p4-y) + 160px) calc((100vw - var(--p4-w))/2) calc(var(--p4-y)/2)!important}
-#main .p2 .launch-strip{border-image:radial-gradient(ellipse 75% 85% at 0 0,#e3e5ea,rgba(227,229,234,0)) fill 0/0/calc(var(--p4-y)/2) calc((100vw - var(--p4-w))/2) var(--p4-y)!important}
+#main .p2 .product-section>.section-head{position:relative;z-index:1}
+#main .p2 .product-browser{border-image:linear-gradient(359deg,#ebebeb,#00000000) fill 0/0/calc(var(--p4-y) + 160px) calc((100vw - var(--p4-w))/2) calc(var(--p4-y)/2)!important}
+#main .p2 .launch-strip{border-image:linear-gradient(179deg,#ebebeb,#00000000) fill 0/0/calc(var(--p4-y)/2) calc((100vw - var(--p4-w))/2) var(--p4-y)!important}
 /* container-width sections: border-image paints the same wash out to the viewport edges without overflow */
 #main #global-network{border-image:linear-gradient(359deg,var(--p4-wash),rgba(0,0,0,0)) fill 0/0/0 100vw}
 #main .p2 .contact{border-image:linear-gradient(359deg,var(--p4-wash),rgba(0,0,0,0)) fill 0/0/0 100vw!important}
