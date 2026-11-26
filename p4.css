@@ -151,14 +151,8 @@ body{margin:0;background:#fff}
   #global-network .gn-controls{bottom:30px}
 }
 
-/* ---- Map covers the section: right column bleeds to the viewport edge (desktop), full width below ---- */
-#global-network .gn-body{margin-right:calc((var(--p4-w) - 100vw) / 2)}
-#global-network .gn-source{padding-right:calc((100vw - var(--p4-w)) / 2)}
-#global-network .gn-controls{right:calc((100vw - var(--p4-w)) / 2)}
-@media (max-width:1080px){
-  #global-network .gn-body{margin-left:calc((var(--p4-w) - 100vw) / 2)}
-  #global-network .gn-source{padding-left:calc((100vw - var(--p4-w)) / 2)}
-}
+/* ---- Map fills the right column, kept inside the page container ---- */
+#global-network .gn-controls{right:0}
 
 /* ============ Enquiry widget ============ */
 .enq,.enq *,.enq *:before,.enq *:after{box-sizing:border-box}
