@@ -206,6 +206,13 @@ body{margin:0;background:#fff}
 /* --- Section headings: left, same size, same spacing --- */
 #main #about-title,#main #products-title,#main .p2 .launch-strip h2,#main #updates-title,#main #gn-title,#main #business-title,#main #contact-title{
   font-size:var(--p4-h2)!important;line-height:1.12!important;text-align:left!important;margin:0!important;max-width:none!important;white-space:normal!important}
+/* One heading style everywhere, matching "Why AISIN ASK": Frutiger bold, navy (white on the dark partner/contact panels) */
+#main #about-title,#main #products-title,#main .p2 .launch-strip h2,#main #updates-title,#main #gn-title,#main #business-title,#main #contact-title,
+#main #gn-title .gn-t1,#main #gn-title .gn-t2{
+  font-family:Frutiger,"Frutiger LT Std",Arial,sans-serif!important;font-weight:700!important;letter-spacing:-2px!important;font-style:normal!important;text-transform:none!important}
+#main #about-title,#main #products-title,#main .p2 .launch-strip h2,#main #updates-title,#main #gn-title{color:#162a75!important}
+#main #business-title,#main #contact-title{color:#fff!important}
+@media (max-width:720px){#main #about-title,#main #products-title,#main .p2 .launch-strip h2,#main #updates-title,#main #gn-title,#main #business-title,#main #contact-title,#main #gn-title .gn-t1,#main #gn-title .gn-t2{letter-spacing:-1px!important}}
 #main .p1 .about-heading p,#main .p1 .news-heading p,#main #global-network .gn-lede{text-align:left!important;margin:16px 0 0!important;max-width:60ch!important}
 #main .p2 .business-copy>p,#main .p2 .contact-aside>p{margin-top:16px!important}
 #main .p1 .about-heading,#main .p2 .product-section>.section-head,#main .p1 .news-heading,#main #global-network .gn-head{margin-bottom:48px!important}
