@@ -60,6 +60,23 @@
     const stat = (k, v) => { const el = root.querySelector(`[data-gn-stat="${k}"]`); if (el) el.textContent = v; };
     stat('companies', companies.length); stat('locations', locations.length); stat('countries', countries.size); stat('regions', regions.length);
 
+    // Count the stats up from 0 the first time they scroll into view
+    const statEls = [...root.querySelectorAll('[data-gn-stat]')];
+    const runCounter = (el) => {
+      const target = +el.textContent; const t0 = performance.now(); const dur = 1600;
+      const tick = (now) => { const t = Math.min(1, (now - t0) / dur); el.textContent = Math.round(target * (1 - Math.pow(1 - t, 3))); if (t < 1) requestAnimationFrame(tick); };
+      el.textContent = '0'; requestAnimationFrame(tick);
+    };
+    if (!reduceMotion && 'IntersectionObserver' in window && statEls.length) {
+      statEls.forEach((el) => { el.dataset.target = el.textContent; el.textContent = '0'; });
+      const io = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        statEls.forEach((el) => { el.textContent = el.dataset.target; runCounter(el); });
+      }, { threshold: 0.4 });
+      io.observe(root.querySelector('.gn-stats'));
+    }
+
     // ---- Pins
     locations.forEach((l, idx) => {
       const g = document.createElementNS(NS, 'g');
