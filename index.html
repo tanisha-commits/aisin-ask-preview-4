@@ -69,34 +69,26 @@
     <div class="p2 p4-gn-wrap">
     <section class="gn" id="global-network" aria-labelledby="gn-title" data-gn>
       <header class="gn-head">
-        <div class="gn-head-copy">
-          <p class="gn-eyebrow">Global network</p>
-          <h2 id="gn-title">AISIN Group, around the world</h2>
-          <p class="gn-lede">The engineering and manufacturing network behind AISIN ASK. Search a company or city, or select a marker to see who operates there.</p>
-        </div>
+        <h2 id="gn-title"><span class="gn-t1">AISIN Group,</span> <span class="gn-t2">around the world</span></h2>
         <dl class="gn-stats" aria-label="AISIN Group network at a glance">
           <div><dt>Group companies</dt><dd data-gn-stat="companies">186</dd></div>
-          <div><dt>Locations</dt><dd data-gn-stat="locations">120</dd></div>
+          <div><dt>Global locations</dt><dd data-gn-stat="locations">120</dd></div>
           <div><dt>Countries</dt><dd data-gn-stat="countries">23</dd></div>
-          <div><dt>Regions</dt><dd data-gn-stat="regions">6</dd></div>
         </dl>
       </header>
 
       <div class="gn-body">
-        <div class="gn-searchbar">
-          <div class="gn-search-wrap">
-            <label class="gn-search" for="gn-query">
-              <span class="visually-hidden">Search by company name or location</span>
-              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-              <input id="gn-query" type="search" placeholder="Search company, city or country" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="gn-results">
-              <button type="button" class="gn-search-clear" data-gn-clear aria-label="Clear search" hidden><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-            </label>
-            <div class="gn-dropdown" data-gn-dropdown hidden>
-              <p class="gn-count" id="gn-count" aria-live="polite"></p>
-              <ul class="gn-results" id="gn-results" role="listbox" aria-label="Matching companies" data-gn-results></ul>
-            </div>
+        <div class="gn-search-wrap">
+          <label class="gn-search" for="gn-query">
+            <span class="visually-hidden">Search by company name or location</span>
+            <input id="gn-query" type="search" placeholder="Search" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="gn-results">
+            <button type="button" class="gn-search-clear" data-gn-clear aria-label="Clear search" hidden><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            <i class="fa-solid fa-magnifying-glass gn-search-icon" aria-hidden="true"></i>
+          </label>
+          <div class="gn-dropdown" data-gn-dropdown hidden>
+            <p class="gn-count" id="gn-count" aria-live="polite"></p>
+            <ul class="gn-results" id="gn-results" role="listbox" aria-label="Matching companies" data-gn-results></ul>
           </div>
-          <div class="gn-regions" role="group" aria-label="Filter by region" data-gn-regions></div>
         </div>
 
         <div class="gn-stage">
@@ -116,7 +108,7 @@
               <button type="button" data-gn-zoom="reset" aria-label="Show whole world"><i class="fa-solid fa-earth-asia" aria-hidden="true"></i></button>
             </div>
           </div>
-          <p class="gn-source"><span class="gn-legend-pin" aria-hidden="true"></span>AISIN Group location · Company and location information: <a href="https://www.aisin.com/en/profile/global/" target="_blank" rel="noopener">AISIN Corporation, Global Network</a> (as of October 2026). Markers are placed at city level.</p>
+          <p class="gn-source">Source: <a href="https://www.aisin.com/en/profile/global/" target="_blank" rel="noopener">AISIN Corporation, Global Network</a> (October 2026). Markers placed at city level.</p>
         </div>
       </div>
     </section>

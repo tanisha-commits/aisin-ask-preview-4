@@ -94,7 +94,7 @@
       const k = W / v.w;
       // markers + labels keep the same on-screen size at any map width (phone or desktop) and zoom
       const ppu0 = (svg.clientWidth || 1000) / W;
-      svg.style.setProperty('--gn-s', ((ppu0 < 0.6 ? 0.9 : 1.3) / (k * Math.max(ppu0, 0.2))).toFixed(4));
+      svg.style.setProperty('--gn-s', ((ppu0 < 0.6 ? 0.8 : 1.05) / (k * Math.max(ppu0, 0.2))).toFixed(4));
       if (Math.abs(k - lastDotK) / lastDotK > 0.25 && k <= 2.6) { lastDotK = k; renderDots(k); }
       mapEl.classList.toggle('is-zoomed', k > 1.02);
       mapEl.classList.toggle('is-deep', k > 2.4); // dots fade to solid land when zoomed in
@@ -306,6 +306,7 @@
       resultsEl.querySelectorAll('li').forEach((li) => li.setAttribute('aria-selected', String(!!active && +li.dataset.i === active.i)));
     }
     const renderRegions = () => {
+      if (!regionsEl) return; // region chips are optional (not in the reference layout)
       const all = [['all', 'All'], ...regions.map((r) => [r, regionLabel(r)])];
       regionsEl.innerHTML = all.map(([v, label]) => `<button type="button" data-region="${esc(v)}" aria-pressed="${v === region}">${esc(label)}</button>`).join('');
       regionsEl.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
