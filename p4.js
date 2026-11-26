@@ -13,13 +13,7 @@
     const pinLayer = root.querySelector('[data-gn-pins]');
     const popup = root.querySelector('[data-gn-popup]');
     const popupBody = root.querySelector('[data-gn-popup-body]');
-    const input = root.querySelector('#gn-query');
-    const clearBtn = root.querySelector('[data-gn-clear]');
-    const resultsEl = root.querySelector('[data-gn-results]');
-    const countEl = root.querySelector('#gn-count');
-    const regionsEl = root.querySelector('[data-gn-regions]');
     const NS = 'http://www.w3.org/2000/svg';
-    const dropdown = root.querySelector('[data-gn-dropdown]');
 
     // Dot-matrix land (precomputed grid) + solid land shown when zoomed in
     root.querySelector('[data-gn-land]').setAttribute('d', DATA.land);
@@ -283,15 +277,12 @@
       popup.hidden = true;
       active = null;
       setActivePin(null);
-      markSelected();
     }
     function select(c, { from } = {}) {
       active = c;
-      if (from === 'list') setDropdown(false);
       renderPopup(c);
       popup.hidden = false;
       setActivePin(c.locRef || null);
-      markSelected();
       const loc = c.locRef;
       if (loc) {
         const isMobile = window.matchMedia('(max-width: 720px)').matches;
@@ -310,92 +301,6 @@
     window.addEventListener('resize', positionPopup);
     root.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !popup.hidden) { const loc = active?.locRef; closePopup(); loc?.el.focus(); } });
 
-    // ---- Search + region filter (linked to the markers)
-    let region = 'all';
-    let matches = companies;
-    const highlight = (text, q) => {
-      if (!q) return esc(text);
-      const n = norm(text); const at = n.indexOf(q);
-      if (at < 0) return esc(text);
-      return esc(text.slice(0, at)) + '<mark>' + esc(text.slice(at, at + q.length)) + '</mark>' + esc(text.slice(at + q.length));
-    };
-    function markSelected() {
-      resultsEl.querySelectorAll('li').forEach((li) => li.setAttribute('aria-selected', String(!!active && +li.dataset.i === active.i)));
-    }
-    const renderRegions = () => {
-      if (!regionsEl) return; // region chips are optional (not in the reference layout)
-      const all = [['all', 'All'], ...regions.map((r) => [r, regionLabel(r)])];
-      regionsEl.innerHTML = all.map(([v, label]) => `<button type="button" data-region="${esc(v)}" aria-pressed="${v === region}">${esc(label)}</button>`).join('');
-      regionsEl.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
-        region = b.dataset.region;
-        regionsEl.querySelectorAll('button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
-        closePopup();
-        runSearch();
-        fitLocations(region === 'all' ? [] : locations.filter((l) => l.companies.some((c) => matches.includes(c))));
-        if (region === 'all' && !input.value.trim()) animateTo(FULL);
-      }));
-    };
-    function runSearch() {
-      const q = norm(input.value.trim());
-      clearBtn.hidden = !q;
-      matches = companies.filter((c) => (region === 'all' || c.r === region) && (!q || c.hay.includes(q)));
-      const matchLocs = new Set(matches.map((c) => c.locRef).filter(Boolean));
-      const filtering = !!q || region !== 'all';
-      locations.forEach((l) => l.el.classList.toggle('is-dim', filtering && !matchLocs.has(l)));
-      countEl.textContent = matches.length
-        ? `${matches.length} ${matches.length === 1 ? 'company' : 'companies'} · ${matchLocs.size} ${matchLocs.size === 1 ? 'location' : 'locations'}`
-        : 'No matches';
-      resultsEl.innerHTML = matches.length
-        ? matches.map((c) => `<li role="option" tabindex="-1" data-i="${c.i}" aria-selected="false"><strong>${highlight(c.n, q)}</strong><span>${highlight(c.loc || regionLabel(c.r) + ' · location not published', q)}</span><i class="fa-solid fa-location-dot" aria-hidden="true"></i></li>`).join('')
-        : `<li class="gn-empty" role="presentation">No company or location matches “${esc(input.value.trim())}”. Try a city, country or company name.</li>`;
-      markSelected();
-      scheduleLabels();
-      return { q, matchLocs };
-    }
-    resultsEl.addEventListener('click', (e) => {
-      const li = e.target.closest('li[data-i]');
-      if (li) select(companies[+li.dataset.i], { from: 'list' });
-    });
-    resultsEl.addEventListener('keydown', (e) => {
-      const li = e.target.closest('li[data-i]');
-      if (!li) return;
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const next = e.key === 'ArrowDown' ? li.nextElementSibling : li.previousElementSibling;
-        if (next?.dataset.i) next.focus(); else if (e.key === 'ArrowUp') input.focus();
-      } else if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault(); select(companies[+li.dataset.i], { from: 'list' });
-      }
-    });
-    function setDropdown(open) {
-      dropdown.hidden = !open;
-      input.setAttribute('aria-expanded', String(open));
-    }
-    input.addEventListener('focus', () => setDropdown(true));
-    document.addEventListener('pointerdown', (e) => { if (!dropdown.hidden && !e.target.closest('.gn-search-wrap')) setDropdown(false); });
-    root.querySelector('.gn-search-wrap').addEventListener('keydown', (e) => { if (e.key === 'Escape' && !dropdown.hidden && !input.value) { setDropdown(false); input.focus(); } });
-    let searchTimer;
-    input.addEventListener('input', () => {
-      setDropdown(true);
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        const { q, matchLocs } = runSearch();
-        if (active && !matches.includes(active)) closePopup();
-        // follow the search on the map: one match → focus it, a few locations → frame them
-        if (q && matches.length === 1) select(matches[0], { from: 'list' });
-        else if (q && matchLocs.size && matchLocs.size <= 40) fitLocations([...matchLocs]);
-        else if (!q && region === 'all') animateTo(FULL);
-      }, 160);
-    });
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowDown') { e.preventDefault(); resultsEl.querySelector('li[data-i]')?.focus(); }
-      if (e.key === 'Enter') { e.preventDefault(); const first = resultsEl.querySelector('li[data-i]'); if (first) select(companies[+first.dataset.i], { from: 'list' }); }
-      if (e.key === 'Escape' && input.value) { e.stopPropagation(); input.value = ''; input.dispatchEvent(new Event('input')); }
-    });
-    clearBtn.addEventListener('click', () => { input.value = ''; input.dispatchEvent(new Event('input')); input.focus(); });
-
-    renderRegions();
-    runSearch();
     applyView(FULL);
   }
 
