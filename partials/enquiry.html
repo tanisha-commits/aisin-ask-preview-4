@@ -1,0 +1,22 @@
+<div class="enq" data-enq>
+    <div class="enq-panel" id="enq-panel" role="dialog" aria-modal="false" aria-labelledby="enq-title" hidden>
+      <div class="enq-head">
+        <div><p>AISIN ASK</p><h2 id="enq-title">Quick enquiry</h2></div>
+        <button type="button" class="enq-close" data-enq-close aria-label="Close enquiry form"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </div>
+      <form class="enq-form" novalidate>
+        <div class="enq-field"><label for="enq-name">Full name</label><input id="enq-name" name="name" autocomplete="name" required></div>
+        <div class="enq-row">
+          <div class="enq-field"><label for="enq-phone">Phone</label><input id="enq-phone" name="phone" type="tel" autocomplete="tel" required></div>
+          <div class="enq-field"><label for="enq-email">Email</label><input id="enq-email" name="email" type="email" autocomplete="email"></div>
+        </div>
+        <div class="enq-field"><label for="enq-type">Enquiry type</label><select id="enq-type" name="type" required><option value="">Select one</option><option>Product enquiry</option><option>Distributor enquiry</option><option>Bulk enquiry</option><option>Technical enquiry</option></select></div>
+        <div class="enq-field"><label for="enq-message">Message</label><textarea id="enq-message" name="message" rows="3"></textarea></div>
+        <button class="enq-submit" type="submit">Send enquiry <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+        <p class="enq-status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+    <button type="button" class="enq-fab" data-enq-toggle aria-expanded="false" aria-controls="enq-panel" aria-label="Open enquiry form">
+      <i class="fa-solid fa-message enq-icon-open" aria-hidden="true"></i><i class="fa-solid fa-xmark enq-icon-close" aria-hidden="true"></i>
+    </button>
+  </div>

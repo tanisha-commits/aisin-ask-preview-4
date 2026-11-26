@@ -1,0 +1,10 @@
+const fs=require('fs');const topo=require('topojson-client');
+(async()=>{const d3=await import('d3-geo');
+const W=1000,N=84,S=-58,H=Math.round((N-S)/360*W*10)/10;
+const t=JSON.parse(fs.readFileSync('node_modules/world-atlas/land-50m.json'));
+const simp=require('topojson-simplify');let ts=simp.presimplify(t);ts=simp.simplify(ts,simp.quantile(ts,+process.argv[3]));ts=simp.filter(ts,simp.filterWeight(ts,+process.argv[4]||0));const land=topo.feature(ts,ts.objects.land);
+const proj=d3.geoEquirectangular().scale(W/(2*Math.PI)).translate([W/2,N/360*W]).clipExtent([[0,0],[W,H]]).precision(.1);
+const path=d3.geoPath(proj).digits(1);
+let p=path(land);
+fs.writeFileSync(process.argv[2],JSON.stringify({W,H,N,S,d:p}));
+console.log('H',H,'path bytes',p.length);})();

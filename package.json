@@ -1,0 +1,16 @@
+{
+  "name": "aisin-ask-preview-4",
+  "version": "1.0.0",
+  "description": "AISIN ASK homepage Preview 4: composed from Preview 1 and Preview 2",
+  "scripts": {
+    "build": "python3 tools/build.py && node tools/scope-css.js p1 1 p1.css src/preview-1/styles.css src/preview-1/reference.css && node tools/scope-css.js p2 0 p2.css src/preview-2/styles.css",
+    "serve": "python3 -m http.server 4174 --bind 127.0.0.1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "postcss": "^8.4.47"
+  },
+  "private": true
+}

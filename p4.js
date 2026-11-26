@@ -1,0 +1,370 @@
+/* Preview 4: Global network map + floating enquiry widget. Self-contained; touches no other section. */
+(() => {
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ================= Global network ================= */
+  const root = document.querySelector('[data-gn]');
+  const DATA = window.GN_DATA;
+  if (root && DATA) {
+    const { W, H, N } = DATA.map;
+    const svg = root.querySelector('[data-gn-svg]');
+    const mapEl = root.querySelector('[data-gn-map]');
+    const pinLayer = root.querySelector('[data-gn-pins]');
+    const popup = root.querySelector('[data-gn-popup]');
+    const popupBody = root.querySelector('[data-gn-popup-body]');
+    const input = root.querySelector('#gn-query');
+    const clearBtn = root.querySelector('[data-gn-clear]');
+    const resultsEl = root.querySelector('[data-gn-results]');
+    const countEl = root.querySelector('#gn-count');
+    const regionsEl = root.querySelector('[data-gn-regions]');
+    const NS = 'http://www.w3.org/2000/svg';
+    const dotPattern = svg.querySelector('#gn-dots');
+
+    root.querySelector('[data-gn-land]').setAttribute('d', DATA.land);
+    root.querySelector('[data-gn-land-dots]').setAttribute('d', DATA.land);
+
+    const project = (lat, lon) => [((lon + 180) / 360) * W, ((N - lat) / 360) * W];
+    const norm = (v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const REGION_LABEL = { 'Central and South America': 'Central & South America' };
+    const regionLabel = (r) => REGION_LABEL[r] || r;
+
+    // Companies + locations (companies sharing a city share one marker)
+    const companies = DATA.companies.map((c, i) => ({ ...c, i, hay: norm([c.n, c.loc, c.a, c.r].join(' ')) }));
+    const locMap = new Map();
+    companies.forEach((c) => {
+      if (c.lat == null) return;
+      if (!locMap.has(c.loc)) {
+        const [x, y] = project(c.lat, c.lon);
+        locMap.set(c.loc, { key: c.loc, x, y, region: c.r, companies: [] });
+      }
+      const loc = locMap.get(c.loc);
+      loc.companies.push(c);
+      c.locRef = loc;
+    });
+    const locations = [...locMap.values()];
+    locations.forEach((l) => {
+      let near = Infinity;
+      locations.forEach((o) => { if (o !== l) near = Math.min(near, Math.hypot(o.x - l.x, o.y - l.y)); });
+      l.near = near;
+    });
+    const regions = [...new Set(companies.map((c) => c.r))];
+    const countries = new Set(companies.filter((c) => c.loc).map((c) => c.loc.split(', ').pop()));
+    const stat = (k, v) => { const el = root.querySelector(`[data-gn-stat="${k}"]`); if (el) el.textContent = v; };
+    stat('companies', companies.length); stat('locations', locations.length); stat('countries', countries.size); stat('regions', regions.length);
+
+    // ---- Pins
+    locations.forEach((l, idx) => {
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', 'gn-pin');
+      g.setAttribute('transform', `translate(${l.x.toFixed(2)} ${l.y.toFixed(2)})`);
+      g.setAttribute('tabindex', '0');
+      g.setAttribute('role', 'button');
+      g.setAttribute('aria-label', `${l.key}: ${l.companies.length} AISIN Group ${l.companies.length === 1 ? 'company' : 'companies'}`);
+      g.innerHTML = `<g class="gn-pin-s"><circle class="gn-hit" r="9"></circle><circle class="gn-pulse" r="3.4" style="animation-delay:${((idx * 0.37) % 2.8).toFixed(2)}s"></circle><circle class="gn-ring" r="6.5"></circle><circle class="gn-dot" r="3.4"></circle></g>`;
+      g.addEventListener('click', (e) => { e.stopPropagation(); if (dragMoved) return; select(l.companies[0], { from: 'pin' }); });
+      g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(l.companies[0], { from: 'pin' }); } });
+      pinLayer.appendChild(g);
+      l.el = g;
+    });
+
+    // ---- View (viewBox) handling
+    const FULL = { x: 0, y: 0, w: W, h: H };
+    let view = { ...FULL };
+    let anim = 0;
+    const MAX_K = 16;
+    const clampView = (v) => {
+      const w = Math.min(W, Math.max(W / MAX_K, v.w));
+      const h = w * (H / W);
+      const x = Math.min(W - w, Math.max(0, v.x));
+      const y = Math.min(H - h, Math.max(0, v.y));
+      return { x, y, w, h };
+    };
+    const applyView = (v) => {
+      view = v;
+      svg.setAttribute('viewBox', `${v.x.toFixed(3)} ${v.y.toFixed(3)} ${v.w.toFixed(3)} ${v.h.toFixed(3)}`);
+      const k = W / v.w;
+      svg.style.setProperty('--gn-s', (1 / k).toFixed(4));
+      dotPattern?.setAttribute('patternTransform', `scale(${(1 / Math.sqrt(k)).toFixed(4)})`); // texture stays fine-grained when zoomed
+      mapEl.classList.toggle('is-zoomed', k > 1.02);
+      positionPopup();
+    };
+    const animateTo = (target, duration = 700) => {
+      target = clampView(target);
+      cancelAnimationFrame(anim);
+      if (reduceMotion || duration === 0) { applyView(target); return; }
+      const from = { ...view };
+      const t0 = performance.now();
+      const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+      // interpolate zoom geometrically for a smooth "fly" feel
+      const step = (now) => {
+        const t = Math.min(1, (now - t0) / duration);
+        const e = ease(t);
+        const w = from.w * Math.pow(target.w / from.w, e);
+        const cx = from.x + from.w / 2 + (target.x + target.w / 2 - from.x - from.w / 2) * e;
+        const cy = from.y + from.h / 2 + (target.y + target.h / 2 - from.y - from.h / 2) * e;
+        const h = w * (H / W);
+        applyView({ x: cx - w / 2, y: cy - h / 2, w, h });
+        if (t < 1) anim = requestAnimationFrame(step);
+      };
+      anim = requestAnimationFrame(step);
+    };
+    const viewAround = (x, y, k, offsetY = 0) => {
+      const w = W / k; const h = H / k;
+      return { x: x - w / 2, y: y - h / 2 - h * offsetY, w, h };
+    };
+    const fitLocations = (locs) => {
+      if (!locs.length) return animateTo(FULL);
+      const xs = locs.map((l) => l.x); const ys = locs.map((l) => l.y);
+      const pad = 24;
+      let x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad, y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
+      let w = Math.max(x1 - x0, (y1 - y0) * (W / H), W / 10);
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+      animateTo({ x: cx - w / 2, y: cy - (w * H / W) / 2, w, h: w * H / W });
+    };
+    const zoomBy = (factor, cx = view.x + view.w / 2, cy = view.y + view.h / 2) => {
+      const w = Math.min(W, Math.max(W / MAX_K, view.w / factor));
+      const h = w * (H / W);
+      const rx = (cx - view.x) / view.w, ry = (cy - view.y) / view.h;
+      animateTo({ x: cx - rx * w, y: cy - ry * h, w, h }, 420);
+    };
+    root.querySelectorAll('[data-gn-zoom]').forEach((b) => b.addEventListener('click', () => {
+      const a = b.dataset.gnZoom;
+      if (a === 'in') zoomBy(2); else if (a === 'out') zoomBy(0.5); else { closePopup(); animateTo(FULL); }
+    }));
+
+    // pointer → svg coordinates
+    const toSvg = (clientX, clientY) => {
+      const pt = svg.createSVGPoint(); pt.x = clientX; pt.y = clientY;
+      return pt.matrixTransform(svg.getScreenCTM().inverse());
+    };
+    const toScreen = (x, y) => {
+      const pt = svg.createSVGPoint(); pt.x = x; pt.y = y;
+      const p = pt.matrixTransform(svg.getScreenCTM());
+      const r = mapEl.getBoundingClientRect();
+      return { x: p.x - r.left, y: p.y - r.top };
+    };
+
+    // drag to pan
+    let drag = null; let dragMoved = false;
+    svg.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      dragMoved = false;
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, view: { ...view }, scale: view.w / svg.getBoundingClientRect().width };
+    });
+    svg.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!dragMoved && Math.hypot(dx, dy) < 5) return;
+      if (W / view.w <= 1.02) return; // nothing to pan at world view
+      if (!dragMoved) { dragMoved = true; svg.setPointerCapture(e.pointerId); mapEl.classList.add('is-dragging'); cancelAnimationFrame(anim); }
+      applyView(clampView({ ...drag.view, x: drag.view.x - dx * drag.scale, y: drag.view.y - dy * drag.scale }));
+    });
+    const endDrag = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      mapEl.classList.remove('is-dragging');
+      drag = null;
+      setTimeout(() => { dragMoved = false; }, 0);
+    };
+    svg.addEventListener('pointerup', endDrag);
+    svg.addEventListener('pointercancel', endDrag);
+    svg.addEventListener('click', () => { if (!dragMoved) closePopup(); });
+    svg.addEventListener('dblclick', (e) => { e.preventDefault(); const p = toSvg(e.clientX, e.clientY); zoomBy(2, p.x, p.y); });
+    svg.addEventListener('wheel', (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return; // keep normal page scrolling; ctrl/⌘ + wheel (and trackpad pinch) zooms
+      e.preventDefault();
+      const p = toSvg(e.clientX, e.clientY);
+      zoomBy(e.deltaY < 0 ? 1.5 : 1 / 1.5, p.x, p.y);
+    }, { passive: false });
+
+    // ---- Selection + popup
+    let active = null; // company
+    const setActivePin = (loc) => {
+      locations.forEach((l) => l.el.classList.toggle('is-active', l === loc));
+      if (loc) pinLayer.appendChild(loc.el); // raise above neighbours
+    };
+    const renderPopup = (c) => {
+      const loc = c.locRef;
+      const others = loc ? loc.companies.filter((o) => o !== c) : [];
+      const url = /^https?:\/\//i.test(c.u) ? c.u : '';
+      const host = url ? url.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/.*$/, '') : '';
+      popupBody.innerHTML = `
+        <p class="gn-pop-loc"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><span>${esc(c.loc || regionLabel(c.r) + ' · location not published')}</span></p>
+        <h3 id="gn-popup-title">${esc(c.n)}</h3>
+        <dl class="gn-pop-dl">
+          ${c.a ? `<div><dt>Address</dt><dd>${esc(c.a)}</dd></div>` : ''}
+          ${c.b ? `<div><dt>Business</dt><dd class="is-clamped" title="${esc(c.b)}">${esc(c.b)}</dd></div>` : ''}
+        </dl>
+        ${url ? `<a class="gn-pop-link" href="${esc(url)}" target="_blank" rel="noopener">${esc(host)} <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>` : ''}
+        ${others.length ? `<div class="gn-pop-more"><p>Also at this location (${others.length})</p><ul>${others.map((o) => `<li><button type="button" data-gn-company="${o.i}">${esc(o.n)}</button></li>`).join('')}</ul></div>` : ''}`;
+      popupBody.querySelectorAll('[data-gn-company]').forEach((b) => b.addEventListener('click', () => select(companies[+b.dataset.gnCompany], { from: 'popup' })));
+    };
+    function positionPopup() {
+      if (popup.hidden || !active) return;
+      const loc = active.locRef;
+      popup.classList.toggle('is-floating', !loc);
+      if (!loc || window.matchMedia('(max-width: 720px)').matches) { popup.style.left = ''; popup.style.top = ''; popupBody.style.maxHeight = ''; delete popup.dataset.place; return; }
+      const p = toScreen(loc.x, loc.y);
+      const mw = mapEl.clientWidth; const mh = mapEl.clientHeight;
+      popupBody.style.maxHeight = `${Math.max(160, mh - 20 - 38)}px`;
+      const pw = popup.offsetWidth; const ph = popup.offsetHeight;
+      const gap = 18, edge = 10;
+      let place = 'above', left = p.x - pw / 2, top = p.y - ph - gap;
+      if (top < edge) { place = 'below'; top = p.y + gap; }
+      if (place === 'below' && top + ph > mh - edge) {
+        place = p.x + gap + pw <= mw - edge || p.x < mw / 2 ? 'right' : 'left';
+        left = place === 'right' ? p.x + gap : p.x - gap - pw;
+        top = p.y - ph / 2;
+      }
+      left = Math.min(mw - pw - edge, Math.max(edge, left));
+      top = Math.min(mh - ph - edge, Math.max(edge, top));
+      popup.dataset.place = place;
+      popup.style.left = `${left}px`;
+      popup.style.top = `${top}px`;
+      if (place === 'above' || place === 'below') popup.style.setProperty('--gn-arrow', `${Math.min(pw - 22, Math.max(22, p.x - left))}px`);
+      else popup.style.setProperty('--gn-arrow', `${Math.min(ph - 22, Math.max(22, p.y - top))}px`);
+    }
+    function closePopup() {
+      if (popup.hidden) return;
+      popup.hidden = true;
+      active = null;
+      setActivePin(null);
+      markSelected();
+    }
+    function select(c, { from } = {}) {
+      active = c;
+      renderPopup(c);
+      popup.hidden = false;
+      setActivePin(c.locRef || null);
+      markSelected();
+      const loc = c.locRef;
+      if (loc) {
+        const isMobile = window.matchMedia('(max-width: 720px)').matches;
+        const currentK = W / view.w;
+        let k = Math.min(MAX_K, Math.max(4, 16 / Math.max(loc.near, 1)));
+        if (from === 'pin' || from === 'popup') k = Math.max(currentK, Math.min(k, Math.max(currentK, 3)));
+        // leave room above the marker for the popup (desktop); on mobile the popup sits below the map
+        animateTo(viewAround(loc.x, loc.y, k, isMobile ? 0 : 0.2));
+      } else {
+        fitLocations(locations.filter((l) => l.region === c.r));
+      }
+      requestAnimationFrame(positionPopup);
+    }
+    root.querySelector('[data-gn-popup-close]').addEventListener('click', closePopup);
+    popup.addEventListener('pointerdown', (e) => e.stopPropagation());
+    window.addEventListener('resize', positionPopup);
+    root.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !popup.hidden) { const loc = active?.locRef; closePopup(); loc?.el.focus(); } });
+
+    // ---- Search + region filter (linked to the markers)
+    let region = 'all';
+    let matches = companies;
+    const highlight = (text, q) => {
+      if (!q) return esc(text);
+      const n = norm(text); const at = n.indexOf(q);
+      if (at < 0) return esc(text);
+      return esc(text.slice(0, at)) + '<mark>' + esc(text.slice(at, at + q.length)) + '</mark>' + esc(text.slice(at + q.length));
+    };
+    function markSelected() {
+      resultsEl.querySelectorAll('li').forEach((li) => li.setAttribute('aria-selected', String(!!active && +li.dataset.i === active.i)));
+    }
+    const renderRegions = () => {
+      const all = [['all', 'All'], ...regions.map((r) => [r, regionLabel(r)])];
+      regionsEl.innerHTML = all.map(([v, label]) => `<button type="button" data-region="${esc(v)}" aria-pressed="${v === region}">${esc(label)}</button>`).join('');
+      regionsEl.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+        region = b.dataset.region;
+        regionsEl.querySelectorAll('button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+        closePopup();
+        runSearch();
+        fitLocations(region === 'all' ? [] : locations.filter((l) => l.companies.some((c) => matches.includes(c))));
+        if (region === 'all' && !input.value.trim()) animateTo(FULL);
+      }));
+    };
+    function runSearch() {
+      const q = norm(input.value.trim());
+      clearBtn.hidden = !q;
+      matches = companies.filter((c) => (region === 'all' || c.r === region) && (!q || c.hay.includes(q)));
+      const matchLocs = new Set(matches.map((c) => c.locRef).filter(Boolean));
+      const filtering = !!q || region !== 'all';
+      locations.forEach((l) => l.el.classList.toggle('is-dim', filtering && !matchLocs.has(l)));
+      countEl.textContent = matches.length
+        ? `${matches.length} ${matches.length === 1 ? 'company' : 'companies'} · ${matchLocs.size} ${matchLocs.size === 1 ? 'location' : 'locations'}`
+        : 'No matches';
+      resultsEl.innerHTML = matches.length
+        ? matches.map((c) => `<li role="option" tabindex="-1" data-i="${c.i}" aria-selected="false"><strong>${highlight(c.n, q)}</strong><span>${highlight(c.loc || regionLabel(c.r) + ' · location not published', q)}</span><i class="fa-solid fa-location-dot" aria-hidden="true"></i></li>`).join('')
+        : `<li class="gn-empty" role="presentation">No company or location matches “${esc(input.value.trim())}”. Try a city, country or company name.</li>`;
+      markSelected();
+      return { q, matchLocs };
+    }
+    resultsEl.addEventListener('click', (e) => {
+      const li = e.target.closest('li[data-i]');
+      if (li) select(companies[+li.dataset.i], { from: 'list' });
+    });
+    resultsEl.addEventListener('keydown', (e) => {
+      const li = e.target.closest('li[data-i]');
+      if (!li) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const next = e.key === 'ArrowDown' ? li.nextElementSibling : li.previousElementSibling;
+        if (next?.dataset.i) next.focus(); else if (e.key === 'ArrowUp') input.focus();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault(); select(companies[+li.dataset.i], { from: 'list' });
+      }
+    });
+    let searchTimer;
+    input.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        const { q, matchLocs } = runSearch();
+        if (active && !matches.includes(active)) closePopup();
+        // follow the search on the map: one match → focus it, a few locations → frame them
+        if (q && matches.length === 1) select(matches[0], { from: 'list' });
+        else if (q && matchLocs.size && matchLocs.size <= 40) fitLocations([...matchLocs]);
+        else if (!q && region === 'all') animateTo(FULL);
+      }, 160);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); resultsEl.querySelector('li[data-i]')?.focus(); }
+      if (e.key === 'Enter') { e.preventDefault(); const first = resultsEl.querySelector('li[data-i]'); if (first) select(companies[+first.dataset.i], { from: 'list' }); }
+      if (e.key === 'Escape' && input.value) { e.stopPropagation(); input.value = ''; input.dispatchEvent(new Event('input')); }
+    });
+    clearBtn.addEventListener('click', () => { input.value = ''; input.dispatchEvent(new Event('input')); input.focus(); });
+
+    renderRegions();
+    runSearch();
+    applyView(FULL);
+  }
+
+  /* ================= Enquiry widget ================= */
+  const enq = document.querySelector('[data-enq]');
+  if (enq) {
+    const panel = enq.querySelector('.enq-panel');
+    const toggle = enq.querySelector('[data-enq-toggle]');
+    const form = enq.querySelector('.enq-form');
+    const status = enq.querySelector('.enq-status');
+    const setOpen = (open, { focus = true } = {}) => {
+      panel.hidden = !open;
+      enq.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Close enquiry form' : 'Open enquiry form');
+      if (open && focus) setTimeout(() => form.querySelector('input')?.focus(), 60);
+      if (!open && focus) toggle.focus();
+    };
+    toggle.addEventListener('click', () => setOpen(panel.hidden));
+    enq.querySelector('[data-enq-close]').addEventListener('click', () => setOpen(false));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) setOpen(false); });
+    document.addEventListener('pointerdown', (e) => { if (!panel.hidden && !enq.contains(e.target)) setOpen(false, { focus: false }); });
+    form.addEventListener('input', (e) => { if (e.target.matches('[aria-invalid]')) e.target.removeAttribute('aria-invalid'); });
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const invalid = [...form.elements].filter((el) => el.willValidate && !el.checkValidity());
+      form.querySelectorAll('[aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
+      if (invalid.length) {
+        invalid.forEach((el) => el.setAttribute('aria-invalid', 'true'));
+        invalid[0].focus();
+        status.textContent = 'Please complete the required fields: name, phone and enquiry type.';
+        return;
+      }
+      status.textContent = 'Preview only: connect the approved AISIN ASK enquiry recipient before launch.';
+    });
+  }
+})();
