@@ -154,6 +154,19 @@ body{margin:0;background:#fff}
 /* ---- Map fills the right column, kept inside the page container ---- */
 #global-network .gn-controls{right:0}
 
+/* ---- Desktop (requested): title on top, the three stats in one row with dividers, map full width below ---- */
+@media (min-width:1081px){
+  #global-network{grid-template-columns:1fr}
+  #main #global-network .gn-head{display:block;margin:0 0 clamp(8px,1.5vw,24px)!important}
+  #global-network .gn-t1,#global-network .gn-t2{display:inline}
+  #global-network .gn-stats{display:flex;margin:clamp(32px,3vw,48px) 0 0;gap:0}
+  #global-network .gn-stats div,#global-network .gn-stats div+div{min-width:0;width:auto;margin:0;padding:0 clamp(32px,4vw,64px);border-top:0}
+  #global-network .gn-stats div:first-child{padding-left:0}
+  #global-network .gn-stats div+div{border-left:1px solid #c9ccd3}
+  #global-network .gn-stats dd{color:#162a75}
+  #global-network .gn-stats dt{margin-top:10px;font-size:15px}
+}
+
 /* ============ Enquiry widget ============ */
 .enq,.enq *,.enq *:before,.enq *:after{box-sizing:border-box}
 .enq{--enq-navy:#162a75;--enq-red:#b72424;--enq-ink:#151923;--enq-muted:#626978;position:fixed;right:24px;bottom:24px;z-index:90;font-family:"AISIN Myriad","Frutiger",Arial,sans-serif;color:var(--enq-ink)}
@@ -239,7 +252,13 @@ body{margin:0;background:#fff}
 
 /* --- Section washes: Preview 1's exact gradient on every non-filled section, repeated in the same direction
    (clear at the top, #ebebeb at the bottom) for the zig-zag rhythm. Image/filled sections untouched. --- */
-#main .p1 section.brand-proof,#main .p1 section.updates,#main .p2 .product-section{background:linear-gradient(359deg,var(--p4-wash),rgba(0,0,0,0))!important}
+#main .p1 section.brand-proof,#main .p1 section.updates{background:linear-gradient(359deg,var(--p4-wash),rgba(0,0,0,0))!important}
+/* Products section split into two corner washes (requested): products block glows from bottom-right,
+   "New products on the way" from top-left. border-image paints out to the viewport edges; the far corners fade
+   to clear, so the vertical outsets need not be exact. */
+#main .p2 .product-section{background:none!important}
+#main .p2 .product-browser{border-image:radial-gradient(ellipse 75% 85% at 100% 100%,#e3e5ea,rgba(227,229,234,0)) fill 0/0/calc(var(--p4-y) + 160px) calc((100vw - var(--p4-w))/2) calc(var(--p4-y)/2)!important}
+#main .p2 .launch-strip{border-image:radial-gradient(ellipse 75% 85% at 0 0,#e3e5ea,rgba(227,229,234,0)) fill 0/0/calc(var(--p4-y)/2) calc((100vw - var(--p4-w))/2) var(--p4-y)!important}
 /* container-width sections: border-image paints the same wash out to the viewport edges without overflow */
 #main #global-network{border-image:linear-gradient(359deg,var(--p4-wash),rgba(0,0,0,0)) fill 0/0/0 100vw}
 #main .p2 .contact{border-image:linear-gradient(359deg,var(--p4-wash),rgba(0,0,0,0)) fill 0/0/0 100vw!important}
