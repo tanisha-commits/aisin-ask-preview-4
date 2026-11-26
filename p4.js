@@ -19,10 +19,17 @@
     const countEl = root.querySelector('#gn-count');
     const regionsEl = root.querySelector('[data-gn-regions]');
     const NS = 'http://www.w3.org/2000/svg';
-    const dotPattern = svg.querySelector('#gn-dots');
+    const dropdown = root.querySelector('[data-gn-dropdown]');
 
+    // Dot-matrix land (precomputed grid) + solid land shown when zoomed in
     root.querySelector('[data-gn-land]').setAttribute('d', DATA.land);
-    root.querySelector('[data-gn-land-dots]').setAttribute('d', DATA.land);
+    const dotsEl = root.querySelector('[data-gn-dots]');
+    const renderDots = (k) => {
+      const r = (DATA.dots.step * 0.36 / Math.sqrt(k)).toFixed(2); const pts = DATA.dots.pts; let d = '';
+      for (let i = 0; i < pts.length; i += 2) { const x = pts[i] / 10, y = pts[i + 1] / 10; d += `M${(x - r).toFixed(1)} ${y}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`; }
+      dotsEl.setAttribute('d', d);
+    };
+    renderDots(1);
 
     const project = (lat, lon) => [((lon + 180) / 360) * W, ((N - lat) / 360) * W];
     const norm = (v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -61,7 +68,7 @@
       g.setAttribute('tabindex', '0');
       g.setAttribute('role', 'button');
       g.setAttribute('aria-label', `${l.key}: ${l.companies.length} AISIN Group ${l.companies.length === 1 ? 'company' : 'companies'}`);
-      g.innerHTML = `<g class="gn-pin-s"><circle class="gn-hit" r="9"></circle><circle class="gn-pulse" r="3.4" style="animation-delay:${((idx * 0.37) % 2.8).toFixed(2)}s"></circle><circle class="gn-ring" r="6.5"></circle><circle class="gn-dot" r="3.4"></circle></g>`;
+      g.innerHTML = `<g class="gn-pin-s"><circle class="gn-hit" r="9"></circle><circle class="gn-pulse" r="3.4" style="animation-delay:${((idx * 0.37) % 2.8).toFixed(2)}s"></circle><circle class="gn-ring" r="6.5"></circle><circle class="gn-dot" r="3.4"></circle><text class="gn-label" x="8" y="4.2">${esc(l.key.split(',')[0])}</text></g>`;
       g.addEventListener('click', (e) => { e.stopPropagation(); if (dragMoved) return; select(l.companies[0], { from: 'pin' }); });
       g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(l.companies[0], { from: 'pin' }); } });
       pinLayer.appendChild(g);
@@ -72,7 +79,8 @@
     const FULL = { x: 0, y: 0, w: W, h: H };
     let view = { ...FULL };
     let anim = 0;
-    const MAX_K = 16;
+    let lastDotK = 1;
+    const MAX_K = 10;
     const clampView = (v) => {
       const w = Math.min(W, Math.max(W / MAX_K, v.w));
       const h = w * (H / W);
@@ -84,11 +92,40 @@
       view = v;
       svg.setAttribute('viewBox', `${v.x.toFixed(3)} ${v.y.toFixed(3)} ${v.w.toFixed(3)} ${v.h.toFixed(3)}`);
       const k = W / v.w;
-      svg.style.setProperty('--gn-s', (1 / k).toFixed(4));
-      dotPattern?.setAttribute('patternTransform', `scale(${(1 / Math.sqrt(k)).toFixed(4)})`); // texture stays fine-grained when zoomed
+      // markers + labels keep the same on-screen size at any map width (phone or desktop) and zoom
+      const ppu0 = (svg.clientWidth || 1000) / W;
+      svg.style.setProperty('--gn-s', ((ppu0 < 0.6 ? 0.9 : 1.3) / (k * Math.max(ppu0, 0.2))).toFixed(4));
+      if (Math.abs(k - lastDotK) / lastDotK > 0.25 && k <= 2.6) { lastDotK = k; renderDots(k); }
       mapEl.classList.toggle('is-zoomed', k > 1.02);
+      mapEl.classList.toggle('is-deep', k > 2.4); // dots fade to solid land when zoomed in
       positionPopup();
+      scheduleLabels();
     };
+    // ---- City labels: biggest locations first, skip any label that would collide on screen
+    let labelTimer = 0;
+    function scheduleLabels() { clearTimeout(labelTimer); labelTimer = setTimeout(layoutLabels, 90); }
+    const byWeight = [...locations].sort((a, b) => b.companies.length - a.companies.length);
+    function layoutLabels() {
+      const rect = svg.getBoundingClientRect(); if (!rect.width) return;
+      const ppu = rect.width / view.w;
+      const visible = locations.filter((l) => !l.el.classList.contains('is-dim'));
+      const scr = (l) => ({ x: (l.x - view.x) * ppu, y: (l.y - view.y) * ppu });
+      // every visible marker is an obstacle, so labels never cover a pin
+      const boxes = visible.map((l) => { const p = scr(l); return { x: p.x - 6, y: p.y - 6, w: 12, h: 12, owner: l }; });
+      const overlaps = (b, l) => boxes.some((o) => o.owner !== l && b.x < o.x + o.w && b.x + b.w > o.x && b.y < o.y + o.h && b.y + b.h > o.y);
+      const order = active?.locRef ? [active.locRef, ...byWeight.filter((l) => l !== active.locRef)] : byWeight;
+      const shown = new Set();
+      order.forEach((l) => {
+        if (l.el.classList.contains('is-dim')) return;
+        const p = scr(l); const text = l.key.split(',')[0];
+        const box = { x: p.x + 7, y: p.y - 9, w: text.length * 7.2 + 4, h: 17, owner: l };
+        const inView = p.x > 0 && p.y > 8 && box.x + box.w < rect.width - 44 && p.y < rect.height - 4;
+        if (inView && (l === active?.locRef || !overlaps(box, l))) { boxes.push(box); shown.add(l); }
+      });
+      locations.forEach((l) => l.el.classList.toggle('has-label', shown.has(l)));
+    }
+    window.addEventListener('resize', () => { applyView(view); });
+
     const animateTo = (target, duration = 700) => {
       target = clampView(target);
       cancelAnimationFrame(anim);
@@ -233,6 +270,7 @@
     }
     function select(c, { from } = {}) {
       active = c;
+      if (from === 'list') setDropdown(false);
       renderPopup(c);
       popup.hidden = false;
       setActivePin(c.locRef || null);
@@ -293,6 +331,7 @@
         ? matches.map((c) => `<li role="option" tabindex="-1" data-i="${c.i}" aria-selected="false"><strong>${highlight(c.n, q)}</strong><span>${highlight(c.loc || regionLabel(c.r) + ' · location not published', q)}</span><i class="fa-solid fa-location-dot" aria-hidden="true"></i></li>`).join('')
         : `<li class="gn-empty" role="presentation">No company or location matches “${esc(input.value.trim())}”. Try a city, country or company name.</li>`;
       markSelected();
+      scheduleLabels();
       return { q, matchLocs };
     }
     resultsEl.addEventListener('click', (e) => {
@@ -310,8 +349,16 @@
         e.preventDefault(); select(companies[+li.dataset.i], { from: 'list' });
       }
     });
+    function setDropdown(open) {
+      dropdown.hidden = !open;
+      input.setAttribute('aria-expanded', String(open));
+    }
+    input.addEventListener('focus', () => setDropdown(true));
+    document.addEventListener('pointerdown', (e) => { if (!dropdown.hidden && !e.target.closest('.gn-search-wrap')) setDropdown(false); });
+    root.querySelector('.gn-search-wrap').addEventListener('keydown', (e) => { if (e.key === 'Escape' && !dropdown.hidden && !input.value) { setDropdown(false); input.focus(); } });
     let searchTimer;
     input.addEventListener('input', () => {
+      setDropdown(true);
       clearTimeout(searchTimer);
       searchTimer = setTimeout(() => {
         const { q, matchLocs } = runSearch();

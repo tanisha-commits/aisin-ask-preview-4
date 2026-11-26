@@ -77,33 +77,33 @@
         <dl class="gn-stats" aria-label="AISIN Group network at a glance">
           <div><dt>Group companies</dt><dd data-gn-stat="companies">186</dd></div>
           <div><dt>Locations</dt><dd data-gn-stat="locations">120</dd></div>
-          <div><dt>Countries</dt><dd data-gn-stat="countries">20</dd></div>
+          <div><dt>Countries</dt><dd data-gn-stat="countries">23</dd></div>
           <div><dt>Regions</dt><dd data-gn-stat="regions">6</dd></div>
         </dl>
       </header>
 
       <div class="gn-body">
-        <aside class="gn-panel" aria-label="Search the AISIN Group network">
-          <label class="gn-search" for="gn-query">
-            <span class="visually-hidden">Search by company name or location</span>
-            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input id="gn-query" type="search" placeholder="Search company, city or country" autocomplete="off" spellcheck="false" aria-controls="gn-results" aria-describedby="gn-count">
-            <button type="button" class="gn-search-clear" data-gn-clear aria-label="Clear search" hidden><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-          </label>
+        <div class="gn-searchbar">
+          <div class="gn-search-wrap">
+            <label class="gn-search" for="gn-query">
+              <span class="visually-hidden">Search by company name or location</span>
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input id="gn-query" type="search" placeholder="Search company, city or country" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="gn-results">
+              <button type="button" class="gn-search-clear" data-gn-clear aria-label="Clear search" hidden><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </label>
+            <div class="gn-dropdown" data-gn-dropdown hidden>
+              <p class="gn-count" id="gn-count" aria-live="polite"></p>
+              <ul class="gn-results" id="gn-results" role="listbox" aria-label="Matching companies" data-gn-results></ul>
+            </div>
+          </div>
           <div class="gn-regions" role="group" aria-label="Filter by region" data-gn-regions></div>
-          <p class="gn-count" id="gn-count" aria-live="polite"></p>
-          <ul class="gn-results" id="gn-results" role="listbox" aria-label="Matching companies" data-gn-results></ul>
-        </aside>
+        </div>
 
         <div class="gn-stage">
           <div class="gn-map" data-gn-map>
             <svg class="gn-svg" viewBox="0 0 1000 394.4" preserveAspectRatio="xMidYMid meet" role="img" aria-label="World map of AISIN Group locations" data-gn-svg>
-              <defs>
-                <pattern id="gn-dots" width="3.2" height="3.2" patternUnits="userSpaceOnUse"><circle cx="1.6" cy="1.6" r=".72"></circle></pattern>
-              </defs>
-              <rect class="gn-sea" x="-2000" y="-2000" width="5000" height="5000"></rect>
               <path class="gn-land" data-gn-land d=""></path>
-              <path class="gn-land-dots" data-gn-land-dots d=""></path>
+              <path class="gn-dots" data-gn-dots d=""></path>
               <g class="gn-pins" data-gn-pins></g>
             </svg>
             <div class="gn-popup" data-gn-popup role="dialog" aria-modal="false" aria-labelledby="gn-popup-title" hidden>
@@ -115,9 +115,8 @@
               <button type="button" data-gn-zoom="out" aria-label="Zoom out"><i class="fa-solid fa-minus" aria-hidden="true"></i></button>
               <button type="button" data-gn-zoom="reset" aria-label="Show whole world"><i class="fa-solid fa-earth-asia" aria-hidden="true"></i></button>
             </div>
-            <p class="gn-legend"><span class="gn-legend-pin" aria-hidden="true"></span>AISIN Group location<span class="gn-legend-sep" aria-hidden="true"></span>Drag to pan when zoomed</p>
           </div>
-          <p class="gn-source">Company and location information: <a href="https://www.aisin.com/en/profile/global/" target="_blank" rel="noopener">AISIN Corporation, Global Network</a> (as of October 2026). Markers are placed at city level.</p>
+          <p class="gn-source"><span class="gn-legend-pin" aria-hidden="true"></span>AISIN Group location · Company and location information: <a href="https://www.aisin.com/en/profile/global/" target="_blank" rel="noopener">AISIN Corporation, Global Network</a> (as of October 2026). Markers are placed at city level.</p>
         </div>
       </div>
     </section>
