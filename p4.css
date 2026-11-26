@@ -154,18 +154,20 @@ body{margin:0;background:#fff}
 /* ---- Map fills the right column, kept inside the page container ---- */
 #global-network .gn-controls{right:0}
 
-/* ---- Desktop (requested): title on top, the three stats in one row with dividers, map full width below ---- */
+/* ---- Desktop (requested): title across the top, counters stacked in a slim left column, map on the right ---- */
 @media (min-width:1081px){
-  #global-network{grid-template-columns:1fr}
-  #main #global-network .gn-head{display:block;margin:0 0 clamp(8px,1.5vw,24px)!important}
+  #global-network{grid-template-columns:minmax(220px,260px) minmax(0,1fr);column-gap:clamp(40px,4vw,72px);row-gap:clamp(28px,3vw,44px);align-items:center}
+  #main #global-network .gn-head{display:contents}
+  #main #gn-title{grid-column:1/-1}
   #global-network .gn-t1,#global-network .gn-t2{display:inline}
-  #global-network .gn-stats{display:flex;margin:clamp(32px,3vw,48px) 0 0;gap:0}
-  #global-network .gn-stats div,#global-network .gn-stats div+div{min-width:0;width:auto;margin:0;padding:0 clamp(32px,4vw,64px);border-top:0}
-  #global-network .gn-stats div:first-child{padding-left:0}
-  #global-network .gn-stats div+div{border-left:1px solid #c9ccd3}
-  #global-network .gn-stats dd{color:#162a75}
-  #global-network .gn-stats dt{margin-top:10px;font-size:15px}
+  #global-network .gn-stats{grid-column:1;align-self:center;margin:0;border-top:1px solid #d5d8de}
+  #global-network .gn-stats div,#global-network .gn-stats div+div{display:flex;flex-direction:column-reverse;width:auto;min-width:0;margin:0;padding:26px 0 24px;border:0;border-bottom:1px solid #d5d8de;position:relative}
+  #global-network .gn-stats div:before{content:"";position:absolute;left:0;top:-1px;width:32px;height:3px;background:#b72424}
+  #global-network .gn-stats dd{color:#162a75;font-size:clamp(48px,4vw,60px);letter-spacing:-1px}
+  #global-network .gn-stats dt{margin-top:8px;color:#4a505c;font-size:15px;font-weight:600;letter-spacing:.02em}
+  #global-network .gn-body{grid-column:2}
 }
+
 
 /* ============ Enquiry widget ============ */
 .enq,.enq *,.enq *:before,.enq *:after{box-sizing:border-box}
